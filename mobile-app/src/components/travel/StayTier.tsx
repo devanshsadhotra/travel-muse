@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/theme";
 import { StayOption } from "../../types/travel";
+import { Card } from "../ui/Card";
 
 export function StayTier({
   label,
@@ -18,7 +19,7 @@ export function StayTier({
   }
 
   return (
-    <View style={styles.stayTierCard}>
+    <Card style={{ gap: 12, padding: 18 }}>
       <View style={styles.stayTierHeader}>
         <View style={styles.stayTierBadge}>
           <Ionicons name={icon} size={16} color={COLORS.ocean} />
@@ -40,19 +41,11 @@ export function StayTier({
           {!!stay.bestFor?.length && <Text style={styles.stayBestFor}>Best for: {stay.bestFor.join(" • ")}</Text>}
         </View>
       ))}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  stayTierCard: {
-    backgroundColor: COLORS.paper,
-    borderRadius: 24,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    gap: 14,
-  },
   stayTierHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -62,7 +55,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E7F1EF",
+    backgroundColor: COLORS.mist,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -74,11 +67,14 @@ const styles = StyleSheet.create({
   },
   stayOptionCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 14,
     gap: 8,
-    borderWidth: 1,
-    borderColor: COLORS.line,
+    shadowColor: "#000000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   stayOptionTopRow: {
     flexDirection: "row",
@@ -107,15 +103,20 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   stayPrice: {
+    backgroundColor: COLORS.peach,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     color: COLORS.coral,
     fontSize: 12,
     lineHeight: 18,
     fontFamily: "PlusJakartaSans_700Bold",
-    textAlign: "right",
-    flexShrink: 1,
+    textAlign: "center",
+    flexShrink: 0,
+    overflow: "hidden",
   },
   stayReason: {
-    color: COLORS.ink,
+    color: COLORS.muted,
     fontSize: 13,
     lineHeight: 20,
     fontFamily: "PlusJakartaSans_400Regular",

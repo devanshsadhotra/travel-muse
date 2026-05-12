@@ -10,9 +10,9 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../../constants/theme";
 import { TravelChatMessage } from "../../types/travel";
+import { PrimaryButton } from "../ui/PrimaryButton";
 
 export function TravelAssistantSheet({
   visible,
@@ -83,20 +83,13 @@ export function TravelAssistantSheet({
             value={question}
             onChangeText={onChangeQuestion}
             placeholder="Ask something travel-related..."
-            placeholderTextColor="#91A0A8"
+            placeholderTextColor={COLORS.muted}
             style={styles.assistantInput}
             onSubmitEditing={onSubmit}
             returnKeyType="send"
             blurOnSubmit={false}
           />
-          <Pressable style={styles.ctaButton} onPress={onSubmit} disabled={loading}>
-            <LinearGradient colors={["#20313C", "#2E7D8A"]} style={styles.ctaGradient}>
-              <>
-                <Text style={styles.ctaText}>Send</Text>
-                <Ionicons name="paper-plane-outline" size={18} color={COLORS.white} />
-              </>
-            </LinearGradient>
-          </Pressable>
+          <PrimaryButton label="Send" icon="paper-plane-outline" onPress={onSubmit} loading={loading} />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </View>
@@ -115,13 +108,18 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     backgroundColor: COLORS.paper,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 28,
     maxHeight: "78%",
     gap: 14,
+    shadowColor: "#000000",
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 10,
   },
   modalHandle: {
     width: 42,
@@ -163,13 +161,11 @@ const styles = StyleSheet.create({
   },
   chatBubbleUser: {
     alignSelf: "flex-end",
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.coral,
   },
   chatBubbleAssistant: {
     alignSelf: "flex-start",
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.line,
+    backgroundColor: COLORS.mist,
   },
   chatBubbleText: {
     fontSize: 14,
@@ -183,34 +179,14 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
   },
   assistantInput: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
+    backgroundColor: COLORS.mist,
+    borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 15,
-    borderWidth: 1,
-    borderColor: COLORS.line,
+    paddingVertical: 14,
     color: COLORS.ink,
     fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 15,
-    minHeight: 84,
-  },
-  ctaButton: {
-    borderRadius: 18,
-    overflow: "hidden",
-    marginTop: 4,
-  },
-  ctaGradient: {
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 10,
-  },
-  ctaText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontFamily: "PlusJakartaSans_700Bold",
+    minHeight: 80,
   },
   errorText: {
     color: COLORS.coral,

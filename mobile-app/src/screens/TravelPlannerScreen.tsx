@@ -30,10 +30,15 @@ import { FadeInBlock } from "../components/ui/FadeInBlock";
 import { ChoiceChips } from "../components/ui/ChoiceChips";
 import { MonthPicker } from "../components/ui/MonthPicker";
 import { Metric } from "../components/ui/Metric";
+import { Card } from "../components/ui/Card";
+import { SectionHeader } from "../components/ui/SectionHeader";
+import { Pill } from "../components/ui/Pill";
+import { PrimaryButton } from "../components/ui/PrimaryButton";
+import { LocationInput } from "../components/ui/LocationInput";
+import { FieldLabel } from "../components/ui/FieldLabel";
 import { StayTier } from "../components/travel/StayTier";
 import { LoadingOverlay } from "../components/travel/LoadingOverlay";
 import { TravelAssistantSheet } from "../components/travel/TravelAssistantSheet";
-import { LocationInput } from "../components/ui/LocationInput";
 import { MapLocationPicker } from "../components/ui/MapLocationPicker";
 import { COLORS } from "../constants/theme";
 import {
@@ -88,7 +93,7 @@ export default function TravelPlannerScreen() {
   const [assistantMessages, setAssistantMessages] = useState<TravelChatMessage[]>([
     {
       role: "assistant",
-      text: "Ask me anything about your trip and I’ll stay within travel planning.",
+      text: "Ask me anything about your trip and I'll stay within travel planning.",
     },
   ]);
   const [assistantLoading, setAssistantLoading] = useState(false);
@@ -277,43 +282,45 @@ export default function TravelPlannerScreen() {
     <SafeAreaView style={styles.screen}>
       <StatusBar barStyle="dark-content" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+
+        {/* ── Hero ── */}
         <FadeInBlock index={0}>
           <ImageBackground source={appHeaderImage} style={styles.hero} imageStyle={styles.heroImage}>
             <LinearGradient colors={["rgba(22,35,42,0.22)", "rgba(22,35,42,0.74)"]} style={styles.heroOverlay}>
               <View style={styles.heroBadge}>
-                <Ionicons name="airplane" size={14} color={COLORS.white} />
-                <Text style={styles.heroBadgeTextOnImage}>Travel muse</Text>
+                <Ionicons name="airplane" size={14} color={COLORS.coral} />
+                <Text style={styles.heroBadgeText}>Travel muse</Text>
               </View>
               <Animated.View style={{ transform: [{ translateY: heroFloat }] }}>
-                <Text style={styles.heroTitleOnImage}>{heroCopy.title}</Text>
+                <Text style={styles.heroTitle}>{heroCopy.title}</Text>
               </Animated.View>
-              <Text style={styles.heroSubtitleOnImage}>{heroCopy.subtitle}</Text>
+              <Text style={styles.heroSubtitle}>{heroCopy.subtitle}</Text>
               <View style={styles.heroPills}>
                 {heroCopy.pills.map((pill) => (
-                  <Text key={pill} style={styles.heroPillOnImage}>
-                    {pill}
-                  </Text>
+                  <Text key={pill} style={styles.heroPill}>{pill}</Text>
                 ))}
               </View>
             </LinearGradient>
           </ImageBackground>
         </FadeInBlock>
 
+        {/* ── Form ── */}
         <FadeInBlock index={1}>
-          <View style={styles.panel}>
-            <Text style={styles.panelTitle}>Build your itinerary</Text>
+          <Card style={{ gap: 14 }}>
+            <Text style={styles.cardTitle}>Build your itinerary</Text>
+
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Destination</Text>
+              <FieldLabel>Destination</FieldLabel>
               <LocationInput value={city} onChangeText={setCity} onMapPress={() => setMapPickerOpen(true)} />
               {destinationSuggestions.length ? (
-                <View style={styles.inlineSuggestions}>
+                <View style={styles.suggestionChips}>
                   {destinationSuggestions.map((destination) => (
                     <Pressable
                       key={`${destination.city}-${destination.country}`}
                       onPress={() => setCity(destination.city)}
-                      style={styles.inlineSuggestionChip}
+                      style={styles.suggestionChip}
                     >
-                      <Text style={styles.inlineSuggestionText}>
+                      <Text style={styles.suggestionChipText}>
                         {destination.city}, {destination.country}
                       </Text>
                     </Pressable>
@@ -322,19 +329,17 @@ export default function TravelPlannerScreen() {
               ) : null}
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.fieldBlock, styles.flexOne]}>
-                <Text style={styles.fieldLabel}>Days</Text>
-                <TextInput
-                  value={days}
-                  onChangeText={setDays}
-                  keyboardType="number-pad"
-                  placeholder="4"
-                  placeholderTextColor="#91A0A8"
-                  style={styles.input}
-                />
-                <Text style={styles.helperText}>Choose between 1 and 30 days.</Text>
-              </View>
+            <View style={styles.fieldBlock}>
+              <FieldLabel>Days</FieldLabel>
+              <TextInput
+                value={days}
+                onChangeText={setDays}
+                keyboardType="number-pad"
+                placeholder="4"
+                placeholderTextColor={COLORS.muted}
+                style={styles.input}
+              />
+              <Text style={styles.helperText}>Choose between 1 and 30 days.</Text>
             </View>
 
             <ChoiceChips label="Provider" options={options.providers} value={provider} onChange={setProvider} />
@@ -355,38 +360,22 @@ export default function TravelPlannerScreen() {
               onChange={setFoodPreference}
             />
 
-            <Pressable style={styles.ctaButton} onPress={submit} disabled={loading}>
-              <LinearGradient colors={["#20313C", "#2E7D8A"]} style={styles.ctaGradient}>
-                {loading ? (
-                  <ActivityIndicator color={COLORS.white} />
-                ) : (
-                  <>
-                    <Text style={styles.ctaText}>Generate itinerary</Text>
-                    <Ionicons name="arrow-forward" size={18} color={COLORS.white} />
-                  </>
-                )}
-              </LinearGradient>
-            </Pressable>
-
+            <PrimaryButton label="Generate itinerary" icon="arrow-forward" onPress={submit} loading={loading} />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          </View>
+          </Card>
         </FadeInBlock>
 
+        {/* ── Seasonal suggestions ── */}
         {!result && seasonalSuggestions?.windowMonths?.length ? (
           <FadeInBlock index={2}>
-            <View style={styles.suggestionsSection}>
-              <View style={styles.galleryHeader}>
-                <Text style={styles.galleryTitle}>Seasonal picks</Text>
-                <Text style={styles.galleryCaption}>Good options for this season and the next few months</Text>
-              </View>
-              <View style={styles.suggestionsList}>
+            <View style={styles.section}>
+              <SectionHeader title="Seasonal picks" caption="Good options for this season and the next few months" />
+              <View style={styles.sectionList}>
                 {seasonalSuggestions.windowMonths.map((window) => (
-                  <View key={`${window.month}-${window.year}`} style={styles.suggestionMonthCard}>
-                    <View style={styles.suggestionMonthHeader}>
-                      <Text style={styles.suggestionMonthTitle}>
-                        {window.month} {window.year}
-                      </Text>
-                      <Text style={styles.suggestionMonthSubtitle}>Tap a destination to auto-fill the planner</Text>
+                  <Card key={`${window.month}-${window.year}`} style={{ gap: 12, padding: 18 }}>
+                    <View style={styles.monthHeader}>
+                      <Text style={styles.monthTitle}>{window.month} {window.year}</Text>
+                      <Text style={styles.monthSubtitle}>Tap a destination to auto-fill the planner</Text>
                     </View>
                     {window.destinations.map((destination, index) => (
                       <Pressable
@@ -395,23 +384,21 @@ export default function TravelPlannerScreen() {
                           setCity(destination.city);
                           setTravelMonth(window.month);
                         }}
-                        style={styles.suggestionCard}
+                        style={styles.destinationCard}
                       >
-                        <View style={styles.suggestionTopRow}>
-                          <View style={styles.suggestionTextBlock}>
-                            <Text style={styles.suggestionCity}>
+                        <View style={styles.destinationRow}>
+                          <View style={styles.destinationText}>
+                            <Text style={styles.destinationCity}>
                               {destination.city}, {destination.country}
                             </Text>
-                            <Text style={styles.suggestionVibe}>{destination.vibe}</Text>
+                            <Text style={styles.destinationVibe}>{destination.vibe}</Text>
                           </View>
-                          <View style={styles.suggestionSeasonBadge}>
-                            <Text style={styles.suggestionSeasonText}>{destination.season}</Text>
-                          </View>
+                          <Pill label={destination.season} variant="soft" />
                         </View>
-                        <Text style={styles.suggestionWhy}>{destination.whyNow}</Text>
+                        <Text style={styles.destinationWhy}>{destination.whyNow}</Text>
                       </Pressable>
                     ))}
-                  </View>
+                  </Card>
                 ))}
               </View>
             </View>
@@ -420,8 +407,9 @@ export default function TravelPlannerScreen() {
 
         {result ? (
           <>
+            {/* ── Summary ── */}
             <FadeInBlock index={3}>
-              <View style={styles.summaryCard}>
+              <Card variant="dark" style={{ gap: 14, padding: 22 }}>
                 <View style={styles.summaryTopRow}>
                   <View>
                     <Text style={styles.eyebrow}>
@@ -432,15 +420,12 @@ export default function TravelPlannerScreen() {
                       {result.itinerary.destination.country ? `, ${result.itinerary.destination.country}` : ""}
                     </Text>
                   </View>
-                  <View style={styles.terrainBadge}>
-                    <Text style={styles.terrainBadgeText}>{result.itinerary.destination.terrain}</Text>
-                  </View>
+                  <Pill label={result.itinerary.destination.terrain} variant="ghost" />
                 </View>
                 <Text style={styles.summaryTagline}>
                   {result.itinerary.destination.tagline || "A soft-paced itinerary with room to wander well."}
                 </Text>
                 <Text style={styles.highlightText}>{highlightText}</Text>
-
                 <View style={styles.metricsRow}>
                   <Metric icon="calendar-outline" label="Duration" value={`${result.meta.days} days`} />
                   <Metric icon="airplane-outline" label="Month" value={result.meta.travelMonth} />
@@ -451,61 +436,51 @@ export default function TravelPlannerScreen() {
                     value={result.itinerary.destination.bestTimeToVisit}
                   />
                 </View>
-              </View>
+              </Card>
             </FadeInBlock>
 
+            {/* ── When to go ── */}
             {(result.itinerary.travelInsights?.season ||
               result.itinerary.travelInsights?.weather ||
               result.itinerary.travelInsights?.flightEstimate?.economyRoundTrip) ? (
               <FadeInBlock index={4}>
-                <View style={styles.seasonCard}>
-                  <View style={styles.galleryHeader}>
-                    <Text style={styles.galleryTitle}>When to go</Text>
-                    <Text style={styles.galleryCaption}>{result.meta.travelMonth} outlook</Text>
-                  </View>
-                  <View style={styles.seasonPillRow}>
+                <Card style={{ gap: 12 }}>
+                  <SectionHeader title="When to go" caption={result.meta.travelMonth + " outlook"} />
+                  <View style={styles.pillRow}>
                     {!!result.itinerary.travelInsights?.season && (
-                      <View style={styles.seasonPill}>
-                        <Text style={styles.seasonPillText}>{result.itinerary.travelInsights.season}</Text>
-                      </View>
+                      <Pill label={result.itinerary.travelInsights.season} variant="coral" />
                     )}
                     {!!result.itinerary.travelInsights?.temperatureRange && (
-                      <View style={styles.seasonPillSoft}>
-                        <Text style={styles.seasonPillSoftText}>
-                          {result.itinerary.travelInsights.temperatureRange}
-                        </Text>
-                      </View>
+                      <Pill label={result.itinerary.travelInsights.temperatureRange} variant="soft" />
                     )}
                   </View>
                   {!!result.itinerary.travelInsights?.seasonSummary && (
                     <Text style={styles.seasonBody}>{result.itinerary.travelInsights.seasonSummary}</Text>
                   )}
                   {!!result.itinerary.travelInsights?.weather && (
-                    <Text style={styles.seasonLine}>
-                      <Text style={styles.seasonLabel}>Weather: </Text>
+                    <Text style={styles.metaLine}>
+                      <Text style={styles.metaLabel}>Weather: </Text>
                       {result.itinerary.travelInsights.weather}
                     </Text>
                   )}
                   {!!result.itinerary.travelInsights?.flightEstimate?.economyRoundTrip && (
-                    <Text style={styles.seasonLine}>
-                      <Text style={styles.seasonLabel}>Flights: </Text>
+                    <Text style={styles.metaLine}>
+                      <Text style={styles.metaLabel}>Flights: </Text>
                       {result.itinerary.travelInsights.flightEstimate.economyRoundTrip}
                     </Text>
                   )}
                   {!!result.itinerary.travelInsights?.flightEstimate?.notes && (
-                    <Text style={styles.seasonFootnote}>{result.itinerary.travelInsights.flightEstimate.notes}</Text>
+                    <Text style={styles.metaFootnote}>{result.itinerary.travelInsights.flightEstimate.notes}</Text>
                   )}
-                </View>
+                </Card>
               </FadeInBlock>
             ) : null}
 
+            {/* ── Gallery ── */}
             {destinationImages.length ? (
               <FadeInBlock index={5}>
-                <View style={styles.galleryBlock}>
-                  <View style={styles.galleryHeader}>
-                    <Text style={styles.galleryTitle}>Bali moodboard</Text>
-                    <Text style={styles.galleryCaption}>Pulled from your local imageset</Text>
-                  </View>
+                <View style={styles.section}>
+                  <SectionHeader title="Bali moodboard" caption="Pulled from your local imageset" />
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryRow}>
                     {destinationImages.slice(0, 6).map((source, index) => (
                       <View
@@ -520,13 +495,11 @@ export default function TravelPlannerScreen() {
               </FadeInBlock>
             ) : null}
 
+            {/* ── Stays ── */}
             {stayTierMeta.some((tier) => result.itinerary.stays?.[tier.key]?.length) ? (
               <FadeInBlock index={6}>
-                <View style={styles.staysSection}>
-                  <View style={styles.galleryHeader}>
-                    <Text style={styles.galleryTitle}>Where to stay</Text>
-                    <Text style={styles.galleryCaption}>By budget and comfort level</Text>
-                  </View>
+                <View style={styles.section}>
+                  <SectionHeader title="Where to stay" caption="By budget and comfort level" />
                   {stayTierMeta.map((tier) => (
                     <StayTier key={tier.key} label={tier.label} icon={tier.icon} stays={result.itinerary.stays?.[tier.key] || []} />
                   ))}
@@ -534,12 +507,13 @@ export default function TravelPlannerScreen() {
               </FadeInBlock>
             ) : null}
 
+            {/* ── Day plans ── */}
             {result.itinerary.days.map((dayPlan, index) => (
               <FadeInBlock key={dayPlan.day} index={index + 7}>
-                <View style={styles.dayCard}>
+                <Card style={{ gap: 18 }}>
                   <View style={styles.dayHeader}>
-                    <View style={styles.dayNumber}>
-                      <Text style={styles.dayNumberText}>{dayPlan.day}</Text>
+                    <View style={styles.dayBadge}>
+                      <Text style={styles.dayBadgeText}>{dayPlan.day}</Text>
                     </View>
                     <View style={styles.dayHeaderText}>
                       <Text style={styles.dayTitle}>{dayPlan.title}</Text>
@@ -557,7 +531,7 @@ export default function TravelPlannerScreen() {
                             <View style={styles.timelineBody}>
                               <Text style={styles.timelineTitle}>{item.title}</Text>
                               <Text style={styles.timelineLocation}>{item.location}</Text>
-                              <Text style={styles.timelineDescription}>{item.description}</Text>
+                              <Text style={styles.timelineDesc}>{item.description}</Text>
                             </View>
                           </View>
                         ))}
@@ -567,14 +541,14 @@ export default function TravelPlannerScreen() {
 
                   {dayPlan.food?.length ? (
                     <View style={styles.infoSection}>
-                      <Text style={styles.infoTitle}>Food stops</Text>
+                      <Text style={styles.infoLabel}>Food stops</Text>
                       {dayPlan.food.map((spot, foodIndex) => (
                         <View key={`${spot.name}-${foodIndex}`} style={styles.foodRow}>
                           <View>
                             <Text style={styles.foodName}>{spot.name}</Text>
                             <Text style={styles.foodType}>{spot.type}</Text>
                           </View>
-                          <Text style={styles.foodMustTry}>{spot.mustTry.join(", ")}</Text>
+                          <Text style={styles.foodDishes}>{spot.mustTry.join(", ")}</Text>
                         </View>
                       ))}
                     </View>
@@ -582,17 +556,18 @@ export default function TravelPlannerScreen() {
 
                   {dayPlan.tips?.length ? (
                     <View style={styles.infoSection}>
-                      <Text style={styles.infoTitle}>Tips</Text>
+                      <Text style={styles.infoLabel}>Tips</Text>
                       <Text style={styles.tipsText}>{dayPlan.tips.join(" • ")}</Text>
                     </View>
                   ) : null}
-                </View>
+                </Card>
               </FadeInBlock>
             ))}
 
+            {/* ── Practical notes ── */}
             <FadeInBlock index={result.itinerary.days.length + 7}>
-              <View style={styles.practicalCard}>
-                <Text style={styles.panelTitle}>Practical notes</Text>
+              <Card variant="muted" style={{ gap: 12 }}>
+                <Text style={styles.cardTitle}>Practical notes</Text>
                 {!!result.itinerary.practical.transport?.length && (
                   <Text style={styles.practicalLine}>
                     <Text style={styles.practicalLabel}>Transport: </Text>
@@ -617,7 +592,7 @@ export default function TravelPlannerScreen() {
                     {result.itinerary.practical.localEtiquette.join(" • ")}
                   </Text>
                 )}
-              </View>
+              </Card>
             </FadeInBlock>
           </>
         ) : null}
@@ -657,70 +632,48 @@ export default function TravelPlannerScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.sand,
-  },
-  loadingScreen: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 18,
-  },
-  hero: {
-    borderRadius: 30,
-    overflow: "hidden",
-    minHeight: 280,
-  },
-  heroOverlay: {
-    flex: 1,
-    padding: 24,
-    gap: 14,
-    justifyContent: "flex-end",
-  },
-  heroImage: {
-    borderRadius: 30,
-  },
+  // ── Layout ──
+  screen: { flex: 1, backgroundColor: COLORS.sand },
+  loadingScreen: { alignItems: "center", justifyContent: "center" },
+  content: { padding: 16, paddingBottom: 80, gap: 16 },
+
+  // ── Hero ──
+  hero: { borderRadius: 24, overflow: "hidden", minHeight: 320 },
+  heroImage: { borderRadius: 24 },
+  heroOverlay: { flex: 1, padding: 24, gap: 14, justifyContent: "flex-end" },
   heroBadge: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.72)",
+    gap: 6,
+    backgroundColor: COLORS.white,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 999,
   },
-  heroBadgeTextOnImage: {
-    color: COLORS.white,
-    fontFamily: "PlusJakartaSans_500Medium",
+  heroBadgeText: {
+    color: COLORS.ink,
+    fontFamily: "PlusJakartaSans_700Bold",
     textTransform: "uppercase",
     fontSize: 11,
     letterSpacing: 1,
   },
-  heroTitleOnImage: {
+  heroTitle: {
     color: COLORS.white,
     fontSize: 38,
     lineHeight: 44,
     fontFamily: "DMSerifDisplay_400Regular",
     maxWidth: "90%",
   },
-  heroSubtitleOnImage: {
+  heroSubtitle: {
     color: "#EDF3F4",
     fontSize: 15,
     lineHeight: 22,
     fontFamily: "PlusJakartaSans_400Regular",
     maxWidth: "94%",
   },
-  heroPills: {
-    flexDirection: "row",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  heroPillOnImage: {
+  heroPills: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  heroPill: {
     backgroundColor: "rgba(255,255,255,0.18)",
     color: COLORS.white,
     paddingHorizontal: 12,
@@ -730,33 +683,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "PlusJakartaSans_500Medium",
   },
-  panel: {
-    backgroundColor: COLORS.paper,
-    borderRadius: 28,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    gap: 14,
-  },
-  panelTitle: {
+
+  // ── Form ──
+  cardTitle: {
     color: COLORS.ink,
-    fontSize: 28,
+    fontSize: 26,
     lineHeight: 32,
     fontFamily: "DMSerifDisplay_400Regular",
   },
-  fieldBlock: {
-    gap: 10,
-  },
-  fieldLabel: {
-    color: COLORS.ink,
-    fontSize: 13,
-    fontFamily: "PlusJakartaSans_700Bold",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
+  fieldBlock: { gap: 8 },
   input: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 15,
     borderWidth: 1,
@@ -765,153 +703,61 @@ const styles = StyleSheet.create({
     fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 15,
   },
-  inlineSuggestions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  inlineSuggestionChip: {
-    backgroundColor: "#F3EEE6",
+  suggestionChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  suggestionChip: {
+    backgroundColor: COLORS.white,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: COLORS.line,
   },
-  inlineSuggestionText: {
+  suggestionChipText: {
     color: COLORS.ink,
     fontSize: 12,
     lineHeight: 16,
     fontFamily: "PlusJakartaSans_500Medium",
   },
-  row: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  flexOne: {
-    flex: 1,
-  },
-  ctaButton: {
-    borderRadius: 18,
-    overflow: "hidden",
-    marginTop: 4,
-  },
-  ctaGradient: {
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 10,
-  },
-  ctaText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  errorText: {
-    color: COLORS.coral,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
-  helperText: {
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  suggestionsSection: {
-    gap: 12,
-  },
-  suggestionsList: {
-    gap: 14,
-  },
-  suggestionMonthCard: {
-    backgroundColor: COLORS.paper,
-    borderRadius: 28,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    gap: 12,
-  },
-  suggestionMonthHeader: {
-    gap: 4,
-  },
-  suggestionMonthTitle: {
-    color: COLORS.ink,
-    fontSize: 24,
-    lineHeight: 28,
-    fontFamily: "DMSerifDisplay_400Regular",
-  },
-  suggestionMonthSubtitle: {
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  suggestionCard: {
+  helperText: { color: COLORS.muted, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_400Regular" },
+  errorText: { color: COLORS.coral, fontSize: 13, lineHeight: 18, fontFamily: "PlusJakartaSans_500Medium" },
+
+  // ── Seasonal suggestions ──
+  section: { gap: 12 },
+  sectionList: { gap: 12 },
+  monthHeader: { gap: 4 },
+  monthTitle: { color: COLORS.ink, fontSize: 22, lineHeight: 28, fontFamily: "DMSerifDisplay_400Regular" },
+  monthSubtitle: { color: COLORS.muted, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_400Regular" },
+  destinationCard: {
     backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 14,
     gap: 8,
+    shadowColor: "#000000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  suggestionTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  suggestionTextBlock: {
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
-  suggestionCity: {
+  destinationRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  destinationText: { flex: 1, gap: 4, minWidth: 0 },
+  destinationCity: {
     color: COLORS.ink,
     fontSize: 15,
     lineHeight: 20,
     fontFamily: "PlusJakartaSans_700Bold",
     flexShrink: 1,
   },
-  suggestionVibe: {
+  destinationVibe: {
     color: COLORS.ocean,
     fontSize: 13,
     lineHeight: 18,
     fontFamily: "PlusJakartaSans_500Medium",
     flexShrink: 1,
   },
-  suggestionSeasonBadge: {
-    backgroundColor: COLORS.mist,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  suggestionSeasonText: {
-    color: COLORS.ink,
-    fontSize: 11,
-    textTransform: "capitalize",
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  suggestionWhy: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  summaryCard: {
-    backgroundColor: COLORS.ink,
-    borderRadius: 28,
-    padding: 22,
-    gap: 14,
-  },
-  summaryTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
+  destinationWhy: { color: COLORS.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+
+  // ── Summary card (dark) ──
+  summaryTopRow: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   eyebrow: {
     color: "#B7D9DA",
     fontSize: 12,
@@ -927,294 +773,85 @@ const styles = StyleSheet.create({
     marginTop: 6,
     flexShrink: 1,
   },
-  summaryTagline: {
-    color: "#D6E4E5",
-    fontSize: 15,
-    lineHeight: 22,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  terrainBadge: {
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderRadius: 999,
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexShrink: 0,
-  },
-  terrainBadgeText: {
-    color: COLORS.white,
-    fontFamily: "PlusJakartaSans_500Medium",
-    fontSize: 12,
-    textTransform: "capitalize",
-  },
-  highlightText: {
-    color: "#F7D7C6",
-    fontFamily: "PlusJakartaSans_500Medium",
-    lineHeight: 22,
-  },
-  metricsRow: {
-    gap: 12,
-  },
-  seasonCard: {
-    backgroundColor: COLORS.paper,
-    borderRadius: 28,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    gap: 12,
-  },
-  seasonPillRow: {
-    flexDirection: "row",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  seasonPill: {
-    backgroundColor: COLORS.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  seasonPillText: {
-    color: COLORS.white,
-    fontSize: 12,
-    textTransform: "capitalize",
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  seasonPillSoft: {
-    backgroundColor: COLORS.mist,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  seasonPillSoftText: {
-    color: COLORS.ink,
-    fontSize: 12,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
-  seasonBody: {
-    color: COLORS.ink,
-    fontSize: 14,
-    lineHeight: 22,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  seasonLine: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  seasonLabel: {
-    color: COLORS.ink,
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  seasonFootnote: {
-    color: COLORS.ocean,
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
-  galleryBlock: {
-    gap: 12,
-  },
-  galleryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    gap: 12,
-  },
-  galleryTitle: {
-    color: COLORS.ink,
-    fontSize: 24,
-    lineHeight: 28,
-    fontFamily: "DMSerifDisplay_400Regular",
-  },
-  galleryCaption: {
-    color: COLORS.muted,
-    fontSize: 12,
-    fontFamily: "PlusJakartaSans_400Regular",
-    flexShrink: 1,
-    textAlign: "right",
-  },
-  galleryRow: {
-    gap: 12,
-    paddingRight: 20,
-  },
-  galleryCard: {
-    borderRadius: 24,
-    overflow: "hidden",
-    backgroundColor: COLORS.white,
-  },
-  galleryCardLarge: {
-    width: 240,
-    height: 300,
-  },
-  galleryCardSmall: {
-    width: 180,
-    height: 220,
-    marginTop: 40,
-  },
-  galleryImage: {
-    width: "100%",
-    height: "100%",
-  },
-  staysSection: {
-    gap: 14,
-  },
-  dayCard: {
-    backgroundColor: COLORS.paper,
-    borderRadius: 28,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    gap: 18,
-  },
-  dayHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  dayNumber: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  summaryTagline: { color: "#D6E4E5", fontSize: 15, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
+  highlightText: { color: "#F7D7C6", fontFamily: "PlusJakartaSans_500Medium", lineHeight: 22 },
+  metricsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+
+  // ── When to go ──
+  pillRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  seasonBody: { color: COLORS.ink, fontSize: 14, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
+  metaLine: { color: COLORS.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+  metaLabel: { color: COLORS.ink, fontFamily: "PlusJakartaSans_700Bold" },
+  metaFootnote: { color: COLORS.ocean, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_500Medium" },
+
+  // ── Gallery ──
+  galleryRow: { gap: 10, paddingRight: 16 },
+  galleryCard: { borderRadius: 18, overflow: "hidden", backgroundColor: COLORS.mist },
+  galleryCardLarge: { width: 240, height: 300 },
+  galleryCardSmall: { width: 180, height: 220, marginTop: 40 },
+  galleryImage: { width: "100%", height: "100%" },
+
+  // ── Day cards ──
+  dayHeader: { flexDirection: "row", alignItems: "center", gap: 14 },
+  dayBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: COLORS.peach,
     alignItems: "center",
     justifyContent: "center",
   },
-  dayNumberText: {
-    color: COLORS.ink,
-    fontFamily: "PlusJakartaSans_700Bold",
-    fontSize: 18,
-  },
-  dayHeaderText: {
-    flex: 1,
-    gap: 4,
-  },
-  dayTitle: {
-    color: COLORS.ink,
-    fontSize: 24,
-    lineHeight: 28,
-    fontFamily: "DMSerifDisplay_400Regular",
-  },
-  dayTheme: {
-    color: COLORS.muted,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  timelineSection: {
-    gap: 10,
-  },
+  dayBadgeText: { color: COLORS.coral, fontFamily: "PlusJakartaSans_700Bold", fontSize: 18 },
+  dayHeaderText: { flex: 1, gap: 4 },
+  dayTitle: { color: COLORS.ink, fontSize: 22, lineHeight: 28, fontFamily: "DMSerifDisplay_400Regular" },
+  dayTheme: { color: COLORS.muted, fontSize: 14, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+  timelineSection: { gap: 10 },
   timelineHeading: {
-    color: COLORS.ocean,
-    fontSize: 12,
+    color: COLORS.muted,
+    fontSize: 11,
     fontFamily: "PlusJakartaSans_700Bold",
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },
-  timelineItem: {
-    flexDirection: "row",
-    gap: 14,
-    alignItems: "flex-start",
-  },
-  timelineTime: {
-    width: 76,
-    color: COLORS.coral,
-    fontSize: 12,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  timelineBody: {
-    flex: 1,
-    gap: 4,
-    borderLeftWidth: 1,
-    borderLeftColor: COLORS.line,
-    paddingLeft: 14,
-  },
-  timelineTitle: {
-    color: COLORS.ink,
-    fontSize: 15,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  timelineLocation: {
-    color: COLORS.ocean,
-    fontSize: 13,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
-  timelineDescription: {
+  timelineItem: { flexDirection: "row", gap: 14, alignItems: "flex-start" },
+  timelineTime: { width: 76, color: COLORS.coral, fontSize: 12, lineHeight: 20, fontFamily: "PlusJakartaSans_700Bold" },
+  timelineBody: { flex: 1, gap: 4, borderLeftWidth: 1, borderLeftColor: COLORS.line, paddingLeft: 14 },
+  timelineTitle: { color: COLORS.ink, fontSize: 15, lineHeight: 20, fontFamily: "PlusJakartaSans_700Bold" },
+  timelineLocation: { color: COLORS.ocean, fontSize: 13, fontFamily: "PlusJakartaSans_500Medium" },
+  timelineDesc: { color: COLORS.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+  infoSection: { gap: 10, borderTopWidth: 1, borderTopColor: COLORS.line, paddingTop: 16 },
+  infoLabel: {
     color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  infoSection: {
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.line,
-    paddingTop: 16,
-  },
-  infoTitle: {
-    color: COLORS.ink,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "PlusJakartaSans_700Bold",
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-  foodRow: {
-    gap: 8,
-  },
-  foodName: {
-    color: COLORS.ink,
-    fontSize: 15,
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  foodType: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
-  foodMustTry: {
-    color: COLORS.ocean,
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  tipsText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 21,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  practicalCard: {
-    backgroundColor: COLORS.mist,
-    borderRadius: 28,
-    padding: 20,
-    gap: 10,
-  },
-  practicalLine: {
-    color: COLORS.ink,
-    fontSize: 14,
-    lineHeight: 22,
-    fontFamily: "PlusJakartaSans_400Regular",
-  },
-  practicalLabel: {
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
+  foodRow: { gap: 8 },
+  foodName: { color: COLORS.ink, fontSize: 15, fontFamily: "PlusJakartaSans_700Bold" },
+  foodType: { color: COLORS.muted, fontSize: 13, fontFamily: "PlusJakartaSans_500Medium" },
+  foodDishes: { color: COLORS.ocean, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+  tipsText: { color: COLORS.muted, fontSize: 13, lineHeight: 21, fontFamily: "PlusJakartaSans_400Regular" },
+
+  // ── Practical notes ──
+  practicalLine: { color: COLORS.ink, fontSize: 14, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
+  practicalLabel: { fontFamily: "PlusJakartaSans_700Bold" },
+
+  // ── FAB ──
   fab: {
     position: "absolute",
     right: 20,
     bottom: 28,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: COLORS.ink,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.coral,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: COLORS.coral,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
 });
