@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Travel Muse",
+    "slug": "travel-muse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.devanshsadhotra.travelmuse"
+    },
+    "android": {
+      "package": "com.devanshsadhotra.travelmuse",
+      "adaptiveIcon": {
+        "backgroundColor": "#F4EFE7"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-localization"
+    ]
+  }
+}
