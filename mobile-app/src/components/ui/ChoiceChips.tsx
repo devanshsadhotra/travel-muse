@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../constants/theme";
+import { FieldLabel } from "./FieldLabel";
 
 export function ChoiceChips({
   label,
@@ -15,7 +16,7 @@ export function ChoiceChips({
 }) {
   return (
     <View style={styles.fieldBlock}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {options.map((option) => {
           const active = option === value;
@@ -32,21 +33,14 @@ export function ChoiceChips({
 
 const styles = StyleSheet.create({
   fieldBlock: {
-    gap: 10,
-  },
-  fieldLabel: {
-    color: COLORS.ink,
-    fontSize: 13,
-    fontFamily: "PlusJakartaSans_700Bold",
-    textTransform: "uppercase",
-    letterSpacing: 1,
+    gap: 8,
   },
   chipRow: {
-    gap: 10,
+    gap: 8,
     paddingRight: 10,
   },
   chip: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
     backgroundColor: COLORS.white,
