@@ -27,10 +27,12 @@ export function Metric({
 
 const styles = StyleSheet.create({
   metricCard: {
+    flex: 1,
     backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 14,
     gap: 6,
+    minWidth: "44%",
   },
   metricLabel: {
     color: "#B7D9DA",
