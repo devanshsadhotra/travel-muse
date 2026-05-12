@@ -135,19 +135,53 @@ def get_seasonal_suggestions(reference_date: datetime | None = None) -> dict[str
 
 
 def _extract_json_payload(raw_text: str) -> dict[str, Any]:
+    text = raw_text.strip()
+
+    # Strip markdown code fences (```json ... ``` or ``` ... ```)
+    if text.startswith("```"):
+        lines = text.splitlines()
+        end_fence = next((i for i in range(len(lines) - 1, 0, -1) if lines[i].strip() == "```"), None)
+        text = "\n".join(lines[1:end_fence] if end_fence else lines[1:])
+
     try:
-        parsed = json.loads(raw_text)
+        parsed = json.loads(text)
         if isinstance(parsed, dict):
             return parsed
     except json.JSONDecodeError:
         pass
 
-    start = raw_text.find("{")
-    end = raw_text.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        parsed = json.loads(raw_text[start : end + 1])
-        if isinstance(parsed, dict):
-            return parsed
+    # Bracket-match to extract the first complete JSON object,
+    # ignoring any trailing text or extra objects the model appended.
+    start = text.find("{")
+    if start == -1:
+        raise ValueError("Model did not return a valid JSON object.")
+
+    depth = 0
+    in_string = False
+    escape_next = False
+    for i, ch in enumerate(text[start:], start):
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\" and in_string:
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    parsed = json.loads(text[start : i + 1])
+                    if isinstance(parsed, dict):
+                        return parsed
+                except json.JSONDecodeError:
+                    break
 
     raise ValueError("Model did not return a valid JSON object.")
 

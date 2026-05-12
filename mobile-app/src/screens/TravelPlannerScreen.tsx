@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getLocales } from "expo-localization";
 import {
+  ActivityIndicator,
   Animated,
   Image,
   ImageBackground,
@@ -25,7 +26,6 @@ import {
   PlusJakartaSans_500Medium,
   PlusJakartaSans_700Bold,
 } from "@expo-google-fonts/plus-jakarta-sans";
-import { ActivityIndicator } from "react-native";
 import { FadeInBlock } from "../components/ui/FadeInBlock";
 import { ChoiceChips } from "../components/ui/ChoiceChips";
 import { MonthPicker } from "../components/ui/MonthPicker";
@@ -39,6 +39,7 @@ import { FieldLabel } from "../components/ui/FieldLabel";
 import { StayTier } from "../components/travel/StayTier";
 import { LoadingOverlay } from "../components/travel/LoadingOverlay";
 import { TravelAssistantSheet } from "../components/travel/TravelAssistantSheet";
+import { MapLocationPicker } from "../components/ui/MapLocationPicker";
 import { COLORS } from "../constants/theme";
 import {
   getCurrentMonthName,
@@ -86,6 +87,7 @@ export default function TravelPlannerScreen() {
   const [foodPreference, setFoodPreference] = useState("veg");
   const [seasonalSuggestions, setSeasonalSuggestions] = useState<SeasonalSuggestionsResponse | null>(null);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantQuestion, setAssistantQuestion] = useState("");
   const [assistantMessages, setAssistantMessages] = useState<TravelChatMessage[]>([
@@ -309,7 +311,7 @@ export default function TravelPlannerScreen() {
 
             <View style={styles.fieldBlock}>
               <FieldLabel>Destination</FieldLabel>
-              <LocationInput value={city} onChangeText={setCity} />
+              <LocationInput value={city} onChangeText={setCity} onMapPress={() => setMapPickerOpen(true)} />
               {destinationSuggestions.length ? (
                 <View style={styles.suggestionChips}>
                   {destinationSuggestions.map((destination) => (
@@ -618,6 +620,12 @@ export default function TravelPlannerScreen() {
         onClose={() => setAssistantOpen(false)}
         onChangeQuestion={setAssistantQuestion}
         onSubmit={submitAssistantQuestion}
+      />
+
+      <MapLocationPicker
+        visible={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        onSelect={(selectedCity) => setCity(selectedCity)}
       />
     </SafeAreaView>
   );

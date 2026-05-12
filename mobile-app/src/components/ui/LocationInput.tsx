@@ -1,15 +1,17 @@
 import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/theme";
 
 export function LocationInput({
   value,
   onChangeText,
+  onMapPress,
   placeholder = "Where are you going?",
 }: {
   value: string;
   onChangeText: (v: string) => void;
+  onMapPress?: () => void;
   placeholder?: string;
 }) {
   return (
@@ -22,6 +24,11 @@ export function LocationInput({
         placeholderTextColor={COLORS.muted}
         style={styles.input}
       />
+      {onMapPress ? (
+        <Pressable onPress={onMapPress} hitSlop={10} style={styles.mapBtn}>
+          <Ionicons name="map-outline" size={18} color={COLORS.muted} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -49,5 +56,11 @@ const styles = StyleSheet.create({
     fontFamily: "PlusJakartaSans_500Medium",
     fontSize: 15,
     padding: 0,
+  },
+  mapBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
