@@ -1,10 +1,12 @@
+import concurrent.futures
 import json
 from datetime import datetime
-from typing import Any
+from typing import Any, Iterator
 
-from config import FOOD_PREFERENCES, MESSAGE_TEMPLATE, TRIP_TYPES
+from config import FOOD_PREFERENCES, TRIP_TYPES
 from providers import REGISTRY
-from utils.classifier import classify_terrain
+
+DAYS_CHUNK_SIZE = 4
 
 TRAVEL_MONTHS = [
     "January",
@@ -186,134 +188,72 @@ def _extract_json_payload(raw_text: str) -> dict[str, Any]:
     raise ValueError("Model did not return a valid JSON object.")
 
 
-def _build_itinerary_prompt(city: str, days: int, trip_type: str, food_pref: str, travel_month: str, user_currency: str = "INR") -> str:
-    schema_hint = """
-Return JSON with this exact top-level shape:
-{
-  "destination": {
-    "city": "string",
-    "country": "string",
-    "tagline": "short inspiring line",
-    "terrain": "beach | hilly | mixed",
-    "bestTimeToVisit": "string"
-  },
-  "overview": {
-    "tripType": "string",
-    "foodPreference": "string",
-    "travelMonth": "string",
-    "pace": "relaxed | balanced | packed",
-    "vibe": ["string"],
-    "highlights": ["string"]
-  },
-  "travelInsights": {
-    "season": "off season | shoulder season | peak season | good to go",
-    "seasonSummary": "string",
-    "weather": "string",
-    "temperatureRange": "string",
-    "flightEstimate": {
-      "economyRoundTrip": "string",
-      "notes": "string"
-    }
-  },
-  "stays": {
-    "budget": [
-      {
-        "name": "string",
-        "type": "hotel | hostel | guesthouse | resort | villa",
-        "area": "string",
-        "priceRange": "string",
-        "whyStayHere": "string",
-        "bestFor": ["string"]
-      }
-    ],
-    "economy": [],
-    "midRange": [],
-    "luxury": []
-  },
+def _trip_food_parts(trip_type: str | None, food_pref: str | None) -> tuple[str, str]:
+    return (
+        f"{trip_type} " if trip_type else "",
+        f" for someone with {food_pref} food preferences" if food_pref else "",
+    )
+
+
+def _build_metadata_prompt(
+    city: str, days: int, trip_type: str | None, food_pref: str | None,
+    travel_month: str, user_currency: str,
+) -> str:
+    trip_part, food_part = _trip_food_parts(trip_type, food_pref)
+    return f"""Travel overview for a {days}-day {trip_part}trip to {city}{food_part}. Visit month: {travel_month}. All prices in {user_currency}.
+
+Return JSON:
+{{
+  "destination": {{"city": "string", "country": "string", "tagline": "string", "terrain": "beach | hilly | mixed", "bestTimeToVisit": "string"}},
+  "overview": {{"tripType": "string", "foodPreference": "string", "travelMonth": "string", "pace": "relaxed | balanced | packed", "vibe": ["string"], "highlights": ["string"]}},
+  "travelInsights": {{"season": "off season | shoulder season | peak season | good to go", "seasonSummary": "string", "weather": "string", "temperatureRange": "string", "flightEstimate": {{"economyRoundTrip": "string", "notes": "string"}}}},
+  "stays": {{
+    "budget": [{{"name": "string", "type": "hotel | hostel | guesthouse | resort | villa", "area": "string", "priceRange": "string/night", "whyStayHere": "string", "bestFor": ["string"]}}],
+    "economy": [], "midRange": [], "luxury": []
+  }},
+  "practical": {{"budgetTips": ["string"], "packingTips": ["string"], "localEtiquette": ["string"], "transport": ["string"]}}
+}}
+Include 2-3 real stays per tier. Express all prices in {user_currency}."""
+
+
+def _build_days_prompt(
+    city: str, days_total: int, day_start: int, day_end: int,
+    trip_type: str | None, food_pref: str | None, travel_month: str,
+) -> str:
+    trip_part, food_part = _trip_food_parts(trip_type, food_pref)
+    food_rule = f" Tailor all food to {food_pref} preferences." if food_pref else ""
+    return f"""Day plans for days {day_start}–{day_end} of a {days_total}-day {trip_part}trip to {city}{food_part}. Visit month: {travel_month}.
+
+Return JSON:
+{{
   "days": [
-    {
-      "day": 1,
+    {{
+      "day": {day_start},
       "title": "string",
       "theme": "string",
-      "morning": [
-        {
-          "time": "e.g. 9:00 AM",
-          "title": "string",
-          "description": "string",
-          "location": "string"
-        }
-      ],
+      "morning": [{{"time": "9:00 AM", "title": "string", "description": "string", "location": "string"}}],
       "afternoon": [],
       "evening": [],
-      "food": [
-        {
-          "name": "string",
-          "type": "breakfast | lunch | dinner | snack",
-          "mustTry": ["string"]
-        }
-      ],
+      "food": [{{"name": "string", "type": "breakfast | lunch | dinner | snack", "mustTry": ["string"]}}],
       "tips": ["string"]
-    }
-  ],
-  "practical": {
-    "budgetTips": ["string"],
-    "packingTips": ["string"],
-    "localEtiquette": ["string"],
-    "transport": ["string"]
-  }
-}
-Rules:
-- Keep arrays non-empty where possible.
-- Keep each activity concise and mobile-friendly.
-- Tailor restaurants and dishes to the requested food preference.
-- Use real-world sounding places and practical advice.
-- For "stays", include 2 to 3 suggestions in each price tier: budget, economy, midRange, and luxury.
-- Make hotel and resort suggestions relevant to the destination and trip type.
-- All priceRange values must be per night (e.g. "₹2,500 – ₹4,000 / night").
-- For "travelInsights", estimate what that month is like for travelers, including season, likely weather, temperature range, and a realistic indicative economy return flight range.
-- Treat the flight estimate as approximate guidance, not a live quote.
-- Express ALL prices (priceRange, economyRoundTrip, budgetTips) in the requested currency.
-""".strip()
-
-    request = MESSAGE_TEMPLATE.format(
-        city=city,
-        days=days,
-        trip_type=trip_type,
-        food_pref=food_pref,
-    )
-    seasonal_context = f"The traveler plans to visit in {travel_month}."
-    currency_context = f"Express all prices in {user_currency}. Use the correct currency symbol for {user_currency}."
-    return f"{request}\n\n{seasonal_context}\n{currency_context}\n\n{schema_hint}"
+    }}
+  ]
+}}
+Include exactly days {day_start} through {day_end}. 2-3 activities per slot. Keep descriptions concise.{food_rule}"""
 
 
-def generate_itinerary(
-    provider: str,
-    city: str,
-    days: int,
-    trip_type: str,
-    food_pref: str,
-    travel_month: str,
-    user_currency: str = "INR",
-) -> dict[str, Any]:
-    client = get_client(provider)
-    terrain = classify_terrain(city, client)
-    message = _build_itinerary_prompt(
-        city=city,
-        days=days,
-        trip_type=trip_type,
-        food_pref=food_pref,
-        travel_month=travel_month,
-        user_currency=user_currency,
-    )
-    payload = _extract_json_payload(client.generate(message))
+def _sse(event: dict) -> str:
+    return f"data: {json.dumps(event)}\n\n"
 
+
+def _postprocess(payload: dict, city: str, trip_type: str | None, food_pref: str | None, travel_month: str) -> dict:
     destination = payload.setdefault("destination", {})
     destination.setdefault("city", city)
-    destination.setdefault("terrain", terrain)
+    destination.setdefault("terrain", "mixed")
 
     overview = payload.setdefault("overview", {})
-    overview.setdefault("tripType", trip_type)
-    overview.setdefault("foodPreference", food_pref)
+    overview.setdefault("tripType", trip_type or "")
+    overview.setdefault("foodPreference", food_pref or "")
     overview.setdefault("travelMonth", travel_month)
 
     travel_insights = payload.setdefault("travelInsights", {})
@@ -333,5 +273,106 @@ def generate_itinerary(
 
     payload.setdefault("days", [])
     payload.setdefault("practical", {})
-
     return payload
+
+
+def _chunk_ranges(days: int) -> list[tuple[int, int]]:
+    return [(s, min(s + DAYS_CHUNK_SIZE - 1, days)) for s in range(1, days + 1, DAYS_CHUNK_SIZE)]
+
+
+def _fetch_metadata(client, city, days, trip_type, food_pref, travel_month, user_currency) -> dict:
+    prompt = _build_metadata_prompt(city, days, trip_type, food_pref, travel_month, user_currency)
+    return _extract_json_payload(client.generate(prompt))
+
+
+def _fetch_days_chunk(client, city, days_total, day_start, day_end, trip_type, food_pref, travel_month) -> list:
+    prompt = _build_days_prompt(city, days_total, day_start, day_end, trip_type, food_pref, travel_month)
+    return _extract_json_payload(client.generate(prompt)).get("days", [])
+
+
+def stream_itinerary(
+    provider: str,
+    city: str,
+    days: int,
+    trip_type: str | None,
+    food_pref: str | None,
+    travel_month: str,
+    user_currency: str = "INR",
+) -> Iterator[str]:
+    client = get_client(provider)
+    ranges = _chunk_ranges(days)
+    results: dict[str, Any] = {}
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures: dict[concurrent.futures.Future, str] = {
+            executor.submit(_fetch_metadata, client, city, days, trip_type, food_pref, travel_month, user_currency): "metadata",
+            **{
+                executor.submit(_fetch_days_chunk, client, city, days, s, e, trip_type, food_pref, travel_month): f"{s}_{e}"
+                for s, e in ranges
+            },
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            key = futures[future]
+            try:
+                results[key] = future.result()
+            except Exception:
+                results[key] = {} if key == "metadata" else []
+
+            if key == "metadata":
+                yield _sse({"type": "status", "message": "Overview and insights ready…"})
+            else:
+                s, e = key.split("_")
+                yield _sse({"type": "status", "message": f"Days {s}–{e} planned…"})
+
+    metadata = results.get("metadata", {})
+    all_days: list = []
+    for s, e in ranges:
+        chunk = results.get(f"{s}_{e}", [])
+        if isinstance(chunk, list):
+            all_days.extend(chunk)
+
+    metadata["days"] = sorted(all_days, key=lambda d: d.get("day", 0))
+    payload = _postprocess(metadata, city=city, trip_type=trip_type, food_pref=food_pref, travel_month=travel_month)
+
+    yield _sse({
+        "type": "done",
+        "meta": {
+            "provider": provider,
+            "city": city,
+            "days": days,
+            "travelMonth": travel_month,
+            "tripType": trip_type,
+            "foodPreference": food_pref,
+        },
+        "itinerary": payload,
+    })
+
+
+def generate_itinerary(
+    provider: str,
+    city: str,
+    days: int,
+    trip_type: str | None,
+    food_pref: str | None,
+    travel_month: str,
+    user_currency: str = "INR",
+) -> dict[str, Any]:
+    client = get_client(provider)
+    ranges = _chunk_ranges(days)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        metadata_fut = executor.submit(
+            _fetch_metadata, client, city, days, trip_type, food_pref, travel_month, user_currency
+        )
+        day_futs = [
+            (s, e, executor.submit(_fetch_days_chunk, client, city, days, s, e, trip_type, food_pref, travel_month))
+            for s, e in ranges
+        ]
+        metadata = metadata_fut.result()
+        all_days: list = []
+        for s, e, fut in day_futs:
+            all_days.extend(fut.result())
+
+    metadata["days"] = sorted(all_days, key=lambda d: d.get("day", 0))
+    return _postprocess(metadata, city=city, trip_type=trip_type, food_pref=food_pref, travel_month=travel_month)

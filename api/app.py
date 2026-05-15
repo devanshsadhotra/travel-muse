@@ -1,12 +1,12 @@
-from typing import Literal
-
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field, field_validator
 
 from config import DEFAULT_PROVIDER, FOOD_PREFERENCES, TRIP_TYPES
 from services import answer_travel_question, generate_itinerary, get_available_options, get_seasonal_suggestions
+from services.itinerary import stream_itinerary
 
 load_dotenv()
 
@@ -16,18 +16,29 @@ class GenerateItineraryRequest(BaseModel):
     city: str = Field(min_length=1, description="Destination city name")
     days: int = Field(ge=1, le=30)
     travelMonth: str = Field(min_length=3)
-    tripType: Literal["family", "solo", "backpacker", "couple", "romantic", "adventure"]
-    foodPreference: Literal[
-        "veg",
-        "non-veg",
-        "jain",
-        "veg - no meat",
-        "veg with eggs",
-        "seafood - no meat",
-        "non-veg - no seafood",
-        "no restrictions",
-    ]
+    tripType: list[str] | None = None
+    foodPreference: list[str] | None = None
     userCurrency: str = Field(default="INR", min_length=3, max_length=3)
+
+    @field_validator("tripType")
+    @classmethod
+    def validate_trip_types(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        invalid = [t for t in v if t not in TRIP_TYPES]
+        if invalid:
+            raise ValueError(f"Invalid trip type(s): {invalid}")
+        return v or None
+
+    @field_validator("foodPreference")
+    @classmethod
+    def validate_food_preferences(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        invalid = [f for f in v if f not in FOOD_PREFERENCES]
+        if invalid:
+            raise ValueError(f"Invalid food preference(s): {invalid}")
+        return v or None
 
 
 class TravelAssistantRequest(BaseModel):
@@ -93,18 +104,13 @@ def seasonal_suggestions() -> dict[str, object]:
 
 @app.post("/api/itineraries")
 def create_itinerary(request: GenerateItineraryRequest) -> dict:
-    if request.tripType not in TRIP_TYPES:
-        raise HTTPException(status_code=400, detail="Invalid trip type.")
-    if request.foodPreference not in FOOD_PREFERENCES:
-        raise HTTPException(status_code=400, detail="Invalid food preference.")
-
     try:
         itinerary = generate_itinerary(
             provider=request.provider,
             city=request.city.strip(),
             days=request.days,
-            trip_type=request.tripType,
-            food_pref=request.foodPreference,
+            trip_type=", ".join(request.tripType) if request.tripType else None,
+            food_pref=", ".join(request.foodPreference) if request.foodPreference else None,
             travel_month=request.travelMonth,
             user_currency=request.userCurrency,
         )
@@ -119,11 +125,41 @@ def create_itinerary(request: GenerateItineraryRequest) -> dict:
             "city": request.city.strip(),
             "days": request.days,
             "travelMonth": request.travelMonth,
-            "tripType": request.tripType,
-            "foodPreference": request.foodPreference,
+            "tripType": ", ".join(request.tripType) if request.tripType else None,
+            "foodPreference": ", ".join(request.foodPreference) if request.foodPreference else None,
         },
         "itinerary": itinerary,
     }
+
+
+@app.post("/api/itineraries/stream")
+def create_itinerary_stream(request: GenerateItineraryRequest) -> StreamingResponse:
+    trip_type = ", ".join(request.tripType) if request.tripType else None
+    food_pref = ", ".join(request.foodPreference) if request.foodPreference else None
+
+    def event_stream():
+        try:
+            yield from stream_itinerary(
+                provider=request.provider,
+                city=request.city.strip(),
+                days=request.days,
+                trip_type=trip_type,
+                food_pref=food_pref,
+                travel_month=request.travelMonth,
+                user_currency=request.userCurrency,
+            )
+        except ValueError as exc:
+            import json
+            yield f"data: {json.dumps({'type': 'error', 'detail': str(exc)})}\n\n"
+        except Exception as exc:
+            import json
+            yield f"data: {json.dumps({'type': 'error', 'detail': f'Failed to generate itinerary: {exc}'})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/api/travel-assistant")

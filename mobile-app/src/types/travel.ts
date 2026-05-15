@@ -118,8 +118,8 @@ export type ItineraryRequest = {
   city: string;
   days: number;
   travelMonth: string;
-  tripType: string;
-  foodPreference: string;
+  tripType?: string[];
+  foodPreference?: string[];
   userCurrency?: string;
 };
 
