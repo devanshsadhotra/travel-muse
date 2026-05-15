@@ -1,8 +1,11 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { COLORS } from "../../constants/theme";
+import { Colors } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 export function SectionHeader({ title, caption }: { title: string; caption?: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.row}>
       <Text style={styles.title}>{title}</Text>
@@ -11,24 +14,26 @@ export function SectionHeader({ title, caption }: { title: string; caption?: str
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    gap: 12,
-  },
-  title: {
-    color: COLORS.ink,
-    fontSize: 22,
-    lineHeight: 28,
-    fontFamily: "DMSerifDisplay_400Regular",
-  },
-  caption: {
-    color: COLORS.muted,
-    fontSize: 12,
-    fontFamily: "PlusJakartaSans_400Regular",
-    flexShrink: 1,
-    textAlign: "right",
-  },
-});
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      gap: 12,
+    },
+    title: {
+      color: c.ink,
+      fontSize: 22,
+      lineHeight: 28,
+      fontFamily: "DMSerifDisplay_400Regular",
+    },
+    caption: {
+      color: c.muted,
+      fontSize: 12,
+      fontFamily: "PlusJakartaSans_400Regular",
+      flexShrink: 1,
+      textAlign: "right",
+    },
+  });
+}

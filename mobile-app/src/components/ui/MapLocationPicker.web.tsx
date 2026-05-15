@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -15,7 +15,8 @@ import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "../../constants/theme";
+import { Colors } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 type GeoResult = { city: string; country: string } | null;
 type SearchResult = { lat: string; lon: string; display_name: string };
@@ -83,6 +84,9 @@ export function MapLocationPicker({
   onClose: () => void;
   onSelect: (city: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const mapRef = useRef<LeafletMap | null>(null);
   const hasMoved = useRef(false);
 
@@ -204,7 +208,7 @@ export function MapLocationPicker({
         {/* Center pin */}
         <View style={styles.pinLayer} pointerEvents="none">
           <Animated.View style={{ transform: [{ translateY: pinY }] }}>
-            <Ionicons name="location" size={52} color={COLORS.coral} />
+            <Ionicons name="location" size={52} color={colors.coral} />
           </Animated.View>
           <Animated.View
             style={[styles.pinShadow, { transform: [{ scaleX: shadowScale }], opacity: shadowScale }]}
@@ -215,25 +219,25 @@ export function MapLocationPicker({
         <SafeAreaView style={styles.topBar}>
           <View style={styles.searchRow}>
             <Pressable style={styles.backBtn} onPress={onClose} hitSlop={12}>
-              <Ionicons name="arrow-back" size={20} color={COLORS.ink} />
+              <Ionicons name="arrow-back" size={20} color={colors.ink} />
             </Pressable>
             <View style={styles.searchBox}>
               {isSearching
-                ? <ActivityIndicator size="small" color={COLORS.coral} />
-                : <Ionicons name="search" size={16} color={searchQuery.length >= 3 ? COLORS.coral : COLORS.muted} />
+                ? <ActivityIndicator size="small" color={colors.coral} />
+                : <Ionicons name="search" size={16} color={searchQuery.length >= 3 ? colors.coral : colors.muted} />
               }
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search destination..."
-                placeholderTextColor={COLORS.muted}
+                placeholderTextColor={colors.muted}
                 style={styles.searchText}
                 returnKeyType="done"
                 autoCorrect={false}
               />
               {searchQuery.length > 0 && !isSearching && (
                 <Pressable onPress={() => { setSearchQuery(""); setSearchResults([]); }} hitSlop={10}>
-                  <Ionicons name="close-circle" size={16} color={COLORS.muted} />
+                  <Ionicons name="close-circle" size={16} color={colors.muted} />
                 </Pressable>
               )}
             </View>
@@ -247,7 +251,7 @@ export function MapLocationPicker({
                   style={[styles.dropdownRow, i < searchResults.length - 1 && styles.dropdownDivider]}
                   onPress={() => handleSearchSelect(r)}
                 >
-                  <Ionicons name="location-outline" size={14} color={COLORS.muted} />
+                  <Ionicons name="location-outline" size={14} color={colors.muted} />
                   <Text style={styles.dropdownText} numberOfLines={1}>{r.display_name}</Text>
                 </Pressable>
               ))}
@@ -283,147 +287,149 @@ export function MapLocationPicker({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.mist },
-  pinLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  },
-  pinShadow: {
-    width: 22,
-    height: 8,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.22)",
-    marginTop: -6,
-  },
-  topBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    gap: 10,
-    zIndex: 1001,
-  },
-  searchRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 },
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
-  },
-  searchBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
-  },
-  searchText: {
-    flex: 1,
-    color: COLORS.ink,
-    fontFamily: "PlusJakartaSans_500Medium",
-    fontSize: 15,
-    padding: 0,
-  },
-  dropdown: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  dropdownRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-  },
-  dropdownDivider: { borderBottomWidth: 1, borderBottomColor: COLORS.line },
-  dropdownText: {
-    flex: 1,
-    color: COLORS.ink,
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
-  sheet: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 34,
-    backgroundColor: COLORS.white,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    shadowColor: "#000",
-    shadowOpacity: 0.14,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 10,
-    zIndex: 1001,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.line,
-    alignSelf: "center",
-    marginBottom: 14,
-  },
-  sheetBody: { gap: 14 },
-  sheetLocation: { gap: 14 },
-  cityName: {
-    color: COLORS.ink,
-    fontSize: 26,
-    lineHeight: 30,
-    fontFamily: "DMSerifDisplay_400Regular",
-  },
-  countryName: {
-    color: COLORS.muted,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_400Regular",
-    marginTop: 4,
-  },
-  sheetHint: {
-    color: COLORS.muted,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_400Regular",
-    textAlign: "center",
-    paddingVertical: 6,
-  },
-  confirmBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: COLORS.coral,
-    borderRadius: 14,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-  },
-  confirmBtnText: { color: "#fff", fontSize: 15, fontFamily: "PlusJakartaSans_700Bold" },
-});
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.mist },
+    pinLayer: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+    },
+    pinShadow: {
+      width: 22,
+      height: 8,
+      borderRadius: 12,
+      backgroundColor: "rgba(0,0,0,0.22)",
+      marginTop: -6,
+    },
+    topBar: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 16,
+      gap: 10,
+      zIndex: 1001,
+    },
+    searchRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 },
+    backBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: c.paper,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOpacity: 0.14,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 5,
+    },
+    searchBox: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: c.paper,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      shadowColor: "#000",
+      shadowOpacity: 0.14,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 5,
+    },
+    searchText: {
+      flex: 1,
+      color: c.ink,
+      fontFamily: "PlusJakartaSans_500Medium",
+      fontSize: 15,
+      padding: 0,
+    },
+    dropdown: {
+      backgroundColor: c.paper,
+      borderRadius: 14,
+      overflow: "hidden",
+      shadowColor: "#000",
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 5,
+    },
+    dropdownRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+    },
+    dropdownDivider: { borderBottomWidth: 1, borderBottomColor: c.line },
+    dropdownText: {
+      flex: 1,
+      color: c.ink,
+      fontSize: 13,
+      lineHeight: 20,
+      fontFamily: "PlusJakartaSans_500Medium",
+    },
+    sheet: {
+      position: "absolute",
+      left: 16,
+      right: 16,
+      bottom: 34,
+      backgroundColor: c.paper,
+      borderRadius: 24,
+      paddingHorizontal: 20,
+      paddingVertical: 18,
+      shadowColor: "#000",
+      shadowOpacity: 0.14,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: -4 },
+      elevation: 10,
+      zIndex: 1001,
+    },
+    sheetHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.line,
+      alignSelf: "center",
+      marginBottom: 14,
+    },
+    sheetBody: { gap: 14 },
+    sheetLocation: { gap: 14 },
+    cityName: {
+      color: c.ink,
+      fontSize: 26,
+      lineHeight: 30,
+      fontFamily: "DMSerifDisplay_400Regular",
+    },
+    countryName: {
+      color: c.muted,
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: "PlusJakartaSans_400Regular",
+      marginTop: 4,
+    },
+    sheetHint: {
+      color: c.muted,
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: "PlusJakartaSans_400Regular",
+      textAlign: "center",
+      paddingVertical: 6,
+    },
+    confirmBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      backgroundColor: c.coral,
+      borderRadius: 14,
+      paddingVertical: 15,
+      paddingHorizontal: 20,
+    },
+    confirmBtnText: { color: "#fff", fontSize: 15, fontFamily: "PlusJakartaSans_700Bold" },
+  });
+}

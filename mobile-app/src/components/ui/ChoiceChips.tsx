@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { COLORS } from "../../constants/theme";
+import { Colors } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { FieldLabel } from "./FieldLabel";
 
 type SingleProps = {
@@ -20,6 +21,9 @@ type MultiProps = {
 };
 
 export function ChoiceChips(props: SingleProps | MultiProps) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => makeStyles(colors), [colors]);
+
   const isActive = (option: string) =>
     props.multi ? props.value.includes(option) : props.value === option;
 
@@ -51,33 +55,35 @@ export function ChoiceChips(props: SingleProps | MultiProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  fieldBlock: {
-    gap: 8,
-  },
-  chipRow: {
-    gap: 8,
-    paddingRight: 10,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  chipActive: {
-    backgroundColor: COLORS.ink,
-    borderColor: COLORS.ink,
-  },
-  chipText: {
-    color: COLORS.ink,
-    fontSize: 13,
-    fontFamily: "PlusJakartaSans_500Medium",
-    flexShrink: 1,
-  },
-  chipTextActive: {
-    color: COLORS.white,
-  },
-});
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    fieldBlock: {
+      gap: 8,
+    },
+    chipRow: {
+      gap: 8,
+      paddingRight: 10,
+    },
+    chip: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    chipActive: {
+      backgroundColor: c.ink,
+      borderColor: c.ink,
+    },
+    chipText: {
+      color: c.ink,
+      fontSize: 13,
+      fontFamily: "PlusJakartaSans_500Medium",
+      flexShrink: 1,
+    },
+    chipTextActive: {
+      color: c.paper,
+    },
+  });
+}
