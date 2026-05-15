@@ -40,7 +40,9 @@ import { StayTier } from "../components/travel/StayTier";
 import { LoadingOverlay } from "../components/travel/LoadingOverlay";
 import { TravelAssistantSheet } from "../components/travel/TravelAssistantSheet";
 import { MapLocationPicker } from "../components/ui/MapLocationPicker";
-import { COLORS } from "../constants/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 import {
   getCurrentMonthName,
   getHeroCopy,
@@ -70,6 +72,9 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 export default function TravelPlannerScreen() {
   const initialTravelMonth = getCurrentMonthName();
   const userCurrency = getLocales()[0]?.currencyCode ?? "INR";
+  const { colors, isDark, toggle } = useTheme();
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [fontsLoaded] = useFonts({
     DMSerifDisplay_400Regular,
@@ -279,14 +284,20 @@ export default function TravelPlannerScreen() {
   if (!fontsLoaded) {
     return (
       <View style={[styles.screen, styles.loadingScreen]}>
-        <ActivityIndicator size="large" color={COLORS.coral} />
+        <ActivityIndicator size="large" color={colors.coral} />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      {/* ── Theme toggle ── */}
+      <Pressable style={[styles.themeToggle, { top: insets.top + 8 }]} onPress={toggle}>
+        <Ionicons name={isDark ? "sunny-outline" : "moon-outline"} size={18} color={colors.ink} />
+      </Pressable>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
 
         {/* ── Hero ── */}
@@ -294,7 +305,7 @@ export default function TravelPlannerScreen() {
           <ImageBackground source={appHeaderImage} style={styles.hero} imageStyle={styles.heroImage}>
             <LinearGradient colors={["rgba(22,35,42,0.22)", "rgba(22,35,42,0.74)"]} style={styles.heroOverlay}>
               <View style={styles.heroBadge}>
-                <Ionicons name="airplane" size={14} color={COLORS.coral} />
+                <Ionicons name="airplane" size={14} color={colors.coral} />
                 <Text style={styles.heroBadgeText}>Travel muse</Text>
               </View>
               <Animated.View style={{ transform: [{ translateY: heroFloat }] }}>
@@ -342,7 +353,7 @@ export default function TravelPlannerScreen() {
                 onChangeText={setDays}
                 keyboardType="number-pad"
                 placeholder="4"
-                placeholderTextColor={COLORS.muted}
+                placeholderTextColor={colors.muted}
                 style={styles.input}
               />
               <Text style={styles.helperText}>Choose between 1 and 30 days.</Text>
@@ -614,7 +625,7 @@ export default function TravelPlannerScreen() {
           setAssistantError(null);
         }}
       >
-        <Ionicons name="chatbubble-ellipses" size={22} color={COLORS.white} />
+        <Ionicons name="chatbubble-ellipses" size={22} color={colors.white} />
       </Pressable>
 
       <TravelAssistantSheet
@@ -638,227 +649,248 @@ export default function TravelPlannerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  // ── Layout ──
-  screen: { flex: 1, backgroundColor: COLORS.sand },
-  loadingScreen: { alignItems: "center", justifyContent: "center" },
-  content: { padding: 16, paddingBottom: 80, gap: 16 },
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    // ── Layout ──
+    screen: { flex: 1, backgroundColor: c.sand },
+    loadingScreen: { alignItems: "center", justifyContent: "center" },
+    content: { padding: 16, paddingBottom: 80, gap: 16 },
 
-  // ── Hero ──
-  hero: { borderRadius: 24, overflow: "hidden", minHeight: 320 },
-  heroImage: { borderRadius: 24 },
-  heroOverlay: { flex: 1, padding: 24, gap: 14, justifyContent: "flex-end" },
-  heroBadge: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-  },
-  heroBadgeText: {
-    color: COLORS.ink,
-    fontFamily: "PlusJakartaSans_700Bold",
-    textTransform: "uppercase",
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 38,
-    lineHeight: 44,
-    fontFamily: "DMSerifDisplay_400Regular",
-    maxWidth: "90%",
-  },
-  heroSubtitle: {
-    color: "#EDF3F4",
-    fontSize: 15,
-    lineHeight: 22,
-    fontFamily: "PlusJakartaSans_400Regular",
-    maxWidth: "94%",
-  },
-  heroPills: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  heroPill: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    color: COLORS.white,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-    fontSize: 12,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
+    // ── Theme toggle ──
+    themeToggle: {
+      position: "absolute",
+      top: 14,
+      right: 20,
+      zIndex: 10,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: c.paper,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000000",
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 4,
+    },
 
-  // ── Form ──
-  cardTitle: {
-    color: COLORS.ink,
-    fontSize: 26,
-    lineHeight: 32,
-    fontFamily: "DMSerifDisplay_400Regular",
-  },
-  fieldBlock: { gap: 8 },
-  input: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    color: COLORS.ink,
-    fontFamily: "PlusJakartaSans_500Medium",
-    fontSize: 15,
-  },
-  suggestionChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  suggestionChip: {
-    backgroundColor: COLORS.white,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-  },
-  suggestionChipText: {
-    color: COLORS.ink,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: "PlusJakartaSans_500Medium",
-  },
-  helperText: { color: COLORS.muted, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_400Regular" },
-  errorText: { color: COLORS.coral, fontSize: 13, lineHeight: 18, fontFamily: "PlusJakartaSans_500Medium" },
+    // ── Hero ──
+    hero: { borderRadius: 24, overflow: "hidden", minHeight: 320 },
+    heroImage: { borderRadius: 24 },
+    heroOverlay: { flex: 1, padding: 24, gap: 14, justifyContent: "flex-end" },
+    heroBadge: {
+      alignSelf: "flex-start",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: c.paper,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
+    },
+    heroBadgeText: {
+      color: c.ink,
+      fontFamily: "PlusJakartaSans_700Bold",
+      textTransform: "uppercase",
+      fontSize: 11,
+      letterSpacing: 1,
+    },
+    heroTitle: {
+      color: c.white,
+      fontSize: 38,
+      lineHeight: 44,
+      fontFamily: "DMSerifDisplay_400Regular",
+      maxWidth: "90%",
+    },
+    heroSubtitle: {
+      color: c.tealLight,
+      fontSize: 15,
+      lineHeight: 22,
+      fontFamily: "PlusJakartaSans_400Regular",
+      maxWidth: "94%",
+    },
+    heroPills: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+    heroPill: {
+      backgroundColor: "rgba(255,255,255,0.18)",
+      color: c.white,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      overflow: "hidden",
+      fontSize: 12,
+      fontFamily: "PlusJakartaSans_500Medium",
+    },
 
-  // ── Seasonal suggestions ──
-  section: { gap: 12 },
-  sectionList: { gap: 12 },
-  monthHeader: { gap: 4 },
-  monthTitle: { color: COLORS.ink, fontSize: 22, lineHeight: 28, fontFamily: "DMSerifDisplay_400Regular" },
-  monthSubtitle: { color: COLORS.muted, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_400Regular" },
-  destinationCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 14,
-    gap: 8,
-    shadowColor: "#000000",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  destinationRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
-  destinationText: { flex: 1, gap: 4, minWidth: 0 },
-  destinationCity: {
-    color: COLORS.ink,
-    fontSize: 15,
-    lineHeight: 20,
-    fontFamily: "PlusJakartaSans_700Bold",
-    flexShrink: 1,
-  },
-  destinationVibe: {
-    color: COLORS.ocean,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: "PlusJakartaSans_500Medium",
-    flexShrink: 1,
-  },
-  destinationWhy: { color: COLORS.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+    // ── Form ──
+    cardTitle: {
+      color: c.ink,
+      fontSize: 26,
+      lineHeight: 32,
+      fontFamily: "DMSerifDisplay_400Regular",
+    },
+    fieldBlock: { gap: 8 },
+    input: {
+      backgroundColor: c.paper,
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 15,
+      borderWidth: 1,
+      borderColor: c.line,
+      color: c.ink,
+      fontFamily: "PlusJakartaSans_500Medium",
+      fontSize: 15,
+    },
+    suggestionChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    suggestionChip: {
+      backgroundColor: c.paper,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    suggestionChipText: {
+      color: c.ink,
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: "PlusJakartaSans_500Medium",
+    },
+    helperText: { color: c.muted, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_400Regular" },
+    errorText: { color: c.coral, fontSize: 13, lineHeight: 18, fontFamily: "PlusJakartaSans_500Medium" },
 
-  // ── Summary card (dark) ──
-  summaryTopRow: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  eyebrow: {
-    color: "#B7D9DA",
-    fontSize: 12,
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-    fontFamily: "PlusJakartaSans_700Bold",
-  },
-  summaryTitle: {
-    color: COLORS.white,
-    fontSize: 34,
-    lineHeight: 38,
-    fontFamily: "DMSerifDisplay_400Regular",
-    marginTop: 6,
-    flexShrink: 1,
-  },
-  summaryTagline: { color: "#D6E4E5", fontSize: 15, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
-  highlightText: { color: "#F7D7C6", fontFamily: "PlusJakartaSans_500Medium", lineHeight: 22 },
-  metricsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+    // ── Seasonal suggestions ──
+    section: { gap: 12 },
+    sectionList: { gap: 12 },
+    monthHeader: { gap: 4 },
+    monthTitle: { color: c.ink, fontSize: 22, lineHeight: 28, fontFamily: "DMSerifDisplay_400Regular" },
+    monthSubtitle: { color: c.muted, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_400Regular" },
+    destinationCard: {
+      backgroundColor: c.paper,
+      borderRadius: 14,
+      padding: 14,
+      gap: 8,
+      shadowColor: "#000000",
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    destinationRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+    destinationText: { flex: 1, gap: 4, minWidth: 0 },
+    destinationCity: {
+      color: c.ink,
+      fontSize: 15,
+      lineHeight: 20,
+      fontFamily: "PlusJakartaSans_700Bold",
+      flexShrink: 1,
+    },
+    destinationVibe: {
+      color: c.ocean,
+      fontSize: 13,
+      lineHeight: 18,
+      fontFamily: "PlusJakartaSans_500Medium",
+      flexShrink: 1,
+    },
+    destinationWhy: { color: c.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
 
-  // ── When to go ──
-  pillRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  seasonBody: { color: COLORS.ink, fontSize: 14, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
-  metaLine: { color: COLORS.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
-  metaLabel: { color: COLORS.ink, fontFamily: "PlusJakartaSans_700Bold" },
-  metaFootnote: { color: COLORS.ocean, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_500Medium" },
+    // ── Summary card (always dark) ──
+    summaryTopRow: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
+    eyebrow: {
+      color: c.tealMuted,
+      fontSize: 12,
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      fontFamily: "PlusJakartaSans_700Bold",
+    },
+    summaryTitle: {
+      color: c.white,
+      fontSize: 34,
+      lineHeight: 38,
+      fontFamily: "DMSerifDisplay_400Regular",
+      marginTop: 6,
+      flexShrink: 1,
+    },
+    summaryTagline: { color: c.tealSoft, fontSize: 15, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
+    highlightText: { color: c.peachSoft, fontFamily: "PlusJakartaSans_500Medium", lineHeight: 22 },
+    metricsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 
-  // ── Gallery ──
-  galleryRow: { gap: 10, paddingRight: 16 },
-  galleryCard: { borderRadius: 18, overflow: "hidden", backgroundColor: COLORS.mist },
-  galleryCardLarge: { width: 240, height: 300 },
-  galleryCardSmall: { width: 180, height: 220, marginTop: 40 },
-  galleryImage: { width: "100%", height: "100%" },
+    // ── When to go ──
+    pillRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+    seasonBody: { color: c.ink, fontSize: 14, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
+    metaLine: { color: c.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+    metaLabel: { color: c.ink, fontFamily: "PlusJakartaSans_700Bold" },
+    metaFootnote: { color: c.ocean, fontSize: 12, lineHeight: 18, fontFamily: "PlusJakartaSans_500Medium" },
 
-  // ── Day cards ──
-  dayHeader: { flexDirection: "row", alignItems: "center", gap: 14 },
-  dayBadge: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: COLORS.peach,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayBadgeText: { color: COLORS.coral, fontFamily: "PlusJakartaSans_700Bold", fontSize: 18 },
-  dayHeaderText: { flex: 1, gap: 4 },
-  dayTitle: { color: COLORS.ink, fontSize: 22, lineHeight: 28, fontFamily: "DMSerifDisplay_400Regular" },
-  dayTheme: { color: COLORS.muted, fontSize: 14, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
-  timelineSection: { gap: 10 },
-  timelineHeading: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontFamily: "PlusJakartaSans_700Bold",
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-  },
-  timelineItem: { flexDirection: "row", gap: 14, alignItems: "flex-start" },
-  timelineTime: { width: 76, color: COLORS.coral, fontSize: 12, lineHeight: 20, fontFamily: "PlusJakartaSans_700Bold" },
-  timelineBody: { flex: 1, gap: 4, borderLeftWidth: 1, borderLeftColor: COLORS.line, paddingLeft: 14 },
-  timelineTitle: { color: COLORS.ink, fontSize: 15, lineHeight: 20, fontFamily: "PlusJakartaSans_700Bold" },
-  timelineLocation: { color: COLORS.ocean, fontSize: 13, fontFamily: "PlusJakartaSans_500Medium" },
-  timelineDesc: { color: COLORS.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
-  infoSection: { gap: 10, borderTopWidth: 1, borderTopColor: COLORS.line, paddingTop: 16 },
-  infoLabel: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontFamily: "PlusJakartaSans_700Bold",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  foodRow: { gap: 8 },
-  foodName: { color: COLORS.ink, fontSize: 15, fontFamily: "PlusJakartaSans_700Bold" },
-  foodType: { color: COLORS.muted, fontSize: 13, fontFamily: "PlusJakartaSans_500Medium" },
-  foodDishes: { color: COLORS.ocean, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
-  tipsText: { color: COLORS.muted, fontSize: 13, lineHeight: 21, fontFamily: "PlusJakartaSans_400Regular" },
+    // ── Gallery ──
+    galleryRow: { gap: 10, paddingRight: 16 },
+    galleryCard: { borderRadius: 18, overflow: "hidden", backgroundColor: c.mist },
+    galleryCardLarge: { width: 240, height: 300 },
+    galleryCardSmall: { width: 180, height: 220, marginTop: 40 },
+    galleryImage: { width: "100%", height: "100%" },
 
-  // ── Practical notes ──
-  practicalLine: { color: COLORS.ink, fontSize: 14, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
-  practicalLabel: { fontFamily: "PlusJakartaSans_700Bold" },
+    // ── Day cards ──
+    dayHeader: { flexDirection: "row", alignItems: "center", gap: 14 },
+    dayBadge: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: c.peach,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dayBadgeText: { color: c.coral, fontFamily: "PlusJakartaSans_700Bold", fontSize: 18 },
+    dayHeaderText: { flex: 1, gap: 4 },
+    dayTitle: { color: c.ink, fontSize: 22, lineHeight: 28, fontFamily: "DMSerifDisplay_400Regular" },
+    dayTheme: { color: c.muted, fontSize: 14, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+    timelineSection: { gap: 10 },
+    timelineHeading: {
+      color: c.muted,
+      fontSize: 11,
+      fontFamily: "PlusJakartaSans_700Bold",
+      textTransform: "uppercase",
+      letterSpacing: 1.2,
+    },
+    timelineItem: { flexDirection: "row", gap: 14, alignItems: "flex-start" },
+    timelineTime: { width: 76, color: c.coral, fontSize: 12, lineHeight: 20, fontFamily: "PlusJakartaSans_700Bold" },
+    timelineBody: { flex: 1, gap: 4, borderLeftWidth: 1, borderLeftColor: c.line, paddingLeft: 14 },
+    timelineTitle: { color: c.ink, fontSize: 15, lineHeight: 20, fontFamily: "PlusJakartaSans_700Bold" },
+    timelineLocation: { color: c.ocean, fontSize: 13, fontFamily: "PlusJakartaSans_500Medium" },
+    timelineDesc: { color: c.muted, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+    infoSection: { gap: 10, borderTopWidth: 1, borderTopColor: c.line, paddingTop: 16 },
+    infoLabel: {
+      color: c.muted,
+      fontSize: 11,
+      fontFamily: "PlusJakartaSans_700Bold",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+    },
+    foodRow: { gap: 8 },
+    foodName: { color: c.ink, fontSize: 15, fontFamily: "PlusJakartaSans_700Bold" },
+    foodType: { color: c.muted, fontSize: 13, fontFamily: "PlusJakartaSans_500Medium" },
+    foodDishes: { color: c.ocean, fontSize: 13, lineHeight: 20, fontFamily: "PlusJakartaSans_400Regular" },
+    tipsText: { color: c.muted, fontSize: 13, lineHeight: 21, fontFamily: "PlusJakartaSans_400Regular" },
 
-  // ── FAB ──
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 28,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.coral,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: COLORS.coral,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-});
+    // ── Practical notes ──
+    practicalLine: { color: c.ink, fontSize: 14, lineHeight: 22, fontFamily: "PlusJakartaSans_400Regular" },
+    practicalLabel: { fontFamily: "PlusJakartaSans_700Bold" },
+
+    // ── FAB ──
+    fab: {
+      position: "absolute",
+      right: 20,
+      bottom: 28,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: c.coral,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: c.coral,
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+    },
+  });
+}
