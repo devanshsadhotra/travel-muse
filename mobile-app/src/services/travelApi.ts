@@ -62,13 +62,49 @@ export async function fetchOptions(): Promise<ApiOptions> {
 export async function generateItinerary(body: ItineraryRequest): Promise<ItineraryResponse> {
   const response = await fetch(`${API_BASE_URL}/api/itineraries`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return parseResponse<ItineraryResponse>(response);
+}
+
+export async function generateItineraryStream(
+  body: ItineraryRequest,
+  onStatus: (message: string) => void,
+): Promise<ItineraryResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/itineraries/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
-  return parseResponse<ItineraryResponse>(response);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error((err as any).detail || "Unable to generate your itinerary right now.");
+  }
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+
+    for (const part of parts) {
+      if (!part.startsWith("data: ")) continue;
+      const event = JSON.parse(part.slice(6));
+      if (event.type === "error") throw new Error(event.detail);
+      if (event.type === "status") onStatus(event.message);
+      if (event.type === "done") return event as ItineraryResponse;
+    }
+  }
+
+  throw new Error("Stream ended unexpectedly.");
 }
 
 export async function fetchSeasonalSuggestions(): Promise<SeasonalSuggestionsResponse | null> {

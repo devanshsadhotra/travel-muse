@@ -57,7 +57,7 @@ import {
   fallbackOptions,
   fetchOptions,
   fetchSeasonalSuggestions,
-  generateItinerary,
+  generateItineraryStream,
 } from "../services/travelApi";
 import { ApiOptions, ItineraryResponse, SeasonalSuggestionsResponse, TravelChatMessage } from "../types/travel";
 
@@ -83,8 +83,8 @@ export default function TravelPlannerScreen() {
   const [days, setDays] = useState("4");
   const [travelMonth, setTravelMonth] = useState(initialTravelMonth);
   const [provider, setProvider] = useState("openai");
-  const [tripType, setTripType] = useState("romantic");
-  const [foodPreference, setFoodPreference] = useState("veg");
+  const [tripType, setTripType] = useState<string[]>([]);
+  const [foodPreference, setFoodPreference] = useState<string[]>([]);
   const [seasonalSuggestions, setSeasonalSuggestions] = useState<SeasonalSuggestionsResponse | null>(null);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
@@ -99,6 +99,7 @@ export default function TravelPlannerScreen() {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [streamStatus, setStreamStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ItineraryResponse | null>(null);
   const chatScrollRef = useRef<ScrollView | null>(null);
@@ -130,8 +131,8 @@ export default function TravelPlannerScreen() {
       setOptions(data);
       setProvider(data.providers[0] || "openai");
       setTravelMonth((current) => (current ? current : data.travelMonths[0] || initialTravelMonth));
-      setTripType(data.tripTypes[0] || "solo");
-      setFoodPreference(data.foodPreferences[0] || "no restrictions");
+      setTripType([]);
+      setFoodPreference([]);
     });
     fetchSeasonalSuggestions().then(setSeasonalSuggestions);
   }, []);
@@ -208,18 +209,22 @@ export default function TravelPlannerScreen() {
 
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setError(null);
+    setStreamStatus("");
     setLoading(true);
 
     try {
-      const itinerary = await generateItinerary({
-        provider,
-        city: city.trim(),
-        days: parsedDays,
-        travelMonth,
-        tripType,
-        foodPreference,
-        userCurrency,
-      });
+      const itinerary = await generateItineraryStream(
+        {
+          provider,
+          city: city.trim(),
+          days: parsedDays,
+          travelMonth,
+          ...(tripType.length > 0 && { tripType }),
+          ...(foodPreference.length > 0 && { foodPreference }),
+          userCurrency,
+        },
+        setStreamStatus,
+      );
       setResult(itinerary);
     } catch (submissionError) {
       setError(
@@ -229,6 +234,7 @@ export default function TravelPlannerScreen() {
       );
     } finally {
       setLoading(false);
+      setStreamStatus("");
     }
   };
 
@@ -255,8 +261,8 @@ export default function TravelPlannerScreen() {
         history: nextHistory,
         city: activeCity,
         travelMonth: activeTravelMonth,
-        tripType,
-        foodPreference,
+        ...(tripType.length > 0 && { tripType: tripType.join(", ") }),
+        ...(foodPreference.length > 0 && { foodPreference: foodPreference.join(", ") }),
       });
       setAssistantMessages((current) => [...current, { role: "assistant", text: response.answer }]);
     } catch (questionError) {
@@ -352,8 +358,9 @@ export default function TravelPlannerScreen() {
               onClose={() => setMonthPickerOpen(false)}
               onChange={setTravelMonth}
             />
-            <ChoiceChips label="Trip style" options={options.tripTypes} value={tripType} onChange={setTripType} />
+            <ChoiceChips multi label="Trip style" options={options.tripTypes} value={tripType} onChange={setTripType} />
             <ChoiceChips
+              multi
               label="Food preference"
               options={options.foodPreferences}
               value={foodPreference}
@@ -598,7 +605,7 @@ export default function TravelPlannerScreen() {
         ) : null}
       </ScrollView>
 
-      {loading ? <LoadingOverlay opacity={loaderOpacity} message={loaderMessages[loaderIndex]} /> : null}
+      {loading ? <LoadingOverlay opacity={loaderOpacity} message={streamStatus || loaderMessages[loaderIndex]} /> : null}
 
       <Pressable
         style={styles.fab}
@@ -625,7 +632,7 @@ export default function TravelPlannerScreen() {
       <MapLocationPicker
         visible={mapPickerOpen}
         onClose={() => setMapPickerOpen(false)}
-        onSelect={(selectedCity) => setCity(selectedCity)}
+        onSelect={(selectedCity: string) => setCity(selectedCity)}
       />
     </SafeAreaView>
   );

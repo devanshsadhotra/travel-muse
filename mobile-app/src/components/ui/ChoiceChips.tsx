@@ -3,25 +3,45 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../constants/theme";
 import { FieldLabel } from "./FieldLabel";
 
-export function ChoiceChips({
-  label,
-  options,
-  value,
-  onChange,
-}: {
+type SingleProps = {
   label: string;
   options: string[];
+  multi?: false;
   value: string;
   onChange: (next: string) => void;
-}) {
+};
+
+type MultiProps = {
+  label: string;
+  options: string[];
+  multi: true;
+  value: string[];
+  onChange: (next: string[]) => void;
+};
+
+export function ChoiceChips(props: SingleProps | MultiProps) {
+  const isActive = (option: string) =>
+    props.multi ? props.value.includes(option) : props.value === option;
+
+  const handlePress = (option: string) => {
+    if (props.multi) {
+      const next = props.value.includes(option)
+        ? props.value.filter((v) => v !== option)
+        : [...props.value, option];
+      props.onChange(next);
+    } else {
+      props.onChange(option);
+    }
+  };
+
   return (
     <View style={styles.fieldBlock}>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel>{props.label}</FieldLabel>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {options.map((option) => {
-          const active = option === value;
+        {props.options.map((option) => {
+          const active = isActive(option);
           return (
-            <Pressable key={option} onPress={() => onChange(option)} style={[styles.chip, active && styles.chipActive]}>
+            <Pressable key={option} onPress={() => handlePress(option)} style={[styles.chip, active && styles.chipActive]}>
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{option}</Text>
             </Pressable>
           );
